@@ -258,6 +258,53 @@ urlpatterns = [
 ]
 </code></pre>
 				</section>
+
+				<section>
+					<h3>Protect With Login - Decorator</h3>
+					<p></p>
+				</section>
+				<section>
+					<section>
+						<h3>1. Using the login_required Decorator</h3>
+						<p>The login_required decorator is the most straightforward way to protect a view. You simply add it above your view function. If a user is not authenticated, they will be redirected to the login page.</p>
+						<pre><code>from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+
+@login_required
+def protected_view(request):
+    return render(request, 'protected.html')
+</code></pre>
+					</section>
+					<section>
+						<h3></h3>
+						<p>in `settings.py`: Ensure that you have a login URL specified so that the decorator knows where to redirect unauthenticated users.</p>
+						<pre><code>LOGIN_URL = '/login/'</code></pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h3>2. Using Class-Based Views</h3>
+						<p>For class-based views, you can use the LoginRequiredMixin provided by Django.</p>
+						<pre><code>from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import TemplateView
+
+class ProtectedView(LoginRequiredMixin, TemplateView):
+    template_name = 'protected.html'
+</code></pre>
+					</section>
+				</section>
+				<section>
+					<h3>3. Using URL Configuration</h3>
+					<p>You can also protect an entire set of URLs by using django.contrib.auth.decorators.login_required in your URL configuration.</p>
+					<pre><code>from django.urls import path
+from django.contrib.auth.decorators import login_required
+from myapp import views
+
+urlpatterns = [
+    path('protected/', login_required(views.protected_view), name='protected'),
+]
+</code></pre>
+				</section>
 			</div>
 		</div>
 
