@@ -12,6 +12,12 @@
 
 		<!-- Theme used for syntax highlighted code -->
 		<link rel="stylesheet" href="plugin/highlight/monokai.css">
+
+		<style>
+			.reveal h3 {
+				text-transform: none;
+			}
+		</style>
 	</head>
 	<body>
 		<div class="reveal">
@@ -33,6 +39,224 @@
 						<li>Permission</li>
 						<li>Group</li>
 					</ul>
+				</section>
+				<section>
+					<h1>Views And Urls</h1>
+					<ul>
+						<li>LoginView</li>
+						<li>LogoutView</li>
+						<li>PasswordChangeView</li>
+						<li>PasswordResetView</li>
+					</ul>
+				</section>
+				<section>
+					<h1>Forms</h1>
+					<ul>
+						<li>AuthenticationForm: Used for login</li>
+						<li>UserCreationForm: Used for creating a new user</li>
+						<li>PasswordChangeForm: Used for changing the password</li>
+						<li>PasswordResetForm: Used for password reset requests</li>
+					</ul>
+				</section>
+				<section>
+					<h1>Middleware</h1>
+					<ul>
+						<li>AuthenticationMiddleware: Associates users with requests using sessions.</li>
+					</ul>
+				</section>
+				<section>
+					<section>
+						<h1>Auth Backends</h1>
+						<p>Django supports multiple authentication backends, allowing you to authenticate against various sources.</p>
+					</section>
+					<section>
+						<h3>ModelBackend</h3>
+					</section>
+				</section>
+				<section>
+					<h3>Step 1: Install Django and Start a Project</h3>
+					<p>
+						<pre><code>pip install django
+django-admin startproject myproject
+cd myproject
+python manage.py startapp myapp</code></pre>
+					</p>
+				</section>
+
+				<section>
+					<h3>Step 2: Update settings.py</h3>
+					<p>Add django.contrib.auth and your app (myapp) to INSTALLED_APPS.</p>
+					<pre><code>INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'myapp',
+]
+</code></pre>
+				</section>
+				<section>
+					<h3>Step 3.1: Create User Authentication Views in views.py</h3>
+					<p></p>
+					<pre><code>from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.forms import UserCreationForm
+from django.shortcuts import render, redirect
+
+def signup(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('login')
+    else:
+        form = UserCreationForm()
+    return render(request, 'signup.html', {'form': form})
+</code></pre>
+				</section>
+
+				<section>
+					<h3>Step 3.2: Create User Authentication Views in views.py</h3>
+					<p></p>
+					<pre><code>def user_login(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('home')
+        else:
+            return render(request, 'login.html', {'error': 'Invalid credentials'})
+    return render(request, 'login.html')
+</code></pre>
+				</section>
+
+				<section>
+					<h3>Step 3.3: Create User Authentication Views in views.py</h3>
+					<p></p>
+					<pre><code>def user_logout(request):
+	logout(request)
+	return redirect('login')</code></pre>
+				</section>
+
+				<section>
+					<h3>Step 3.4: Create User Authentication Views in views.py</h3>
+					<p></p>
+					<pre><code>from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.forms import UserCreationForm
+from django.shortcuts import render, redirect
+
+def signup(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('login')
+    else:
+        form = UserCreationForm()
+    return render(request, 'signup.html', {'form': form})
+
+def user_login(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('home')
+        else:
+            return render(request, 'login.html', {'error': 'Invalid credentials'})
+    return render(request, 'login.html')
+
+def user_logout(request):
+    logout(request)
+    return redirect('login')
+</code></pre>
+				</section>
+
+				<section>
+					<h3>Step 4: Define URLs in urls.py</h3>
+					<pre><code>from django.contrib import admin
+from django.urls import path
+from myapp import views
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('signup/', views.signup, name='signup'),
+    path('login/', views.user_login, name='login'),
+    path('logout/', views.user_logout, name='logout'),
+    path('', views.home, name='home'),  # Define a home view in views.py
+]
+</code></pre>
+				</section>
+
+				<section>
+					<h3>Step 5: Create Templates</h3>
+					<p>Create HTML templates for signup.html, login.html, and other views in a templates directory
+						inside your app.</p>
+					<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Sign Up&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h2&gt;Sign Up&lt;/h2&gt;
+    &lt;form method=&quot;post&quot;&gt;
+        {% csrf_token %}
+        {{ form.as_p }}
+        &lt;button type=&quot;submit&quot;&gt;Sign Up&lt;/button&gt;
+    &lt;/form&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+				</section>
+
+				<section>
+					<h3>Step 5: Create Templates</h3>
+					<p>login.html</p>
+					<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Login&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h2&gt;Login&lt;/h2&gt;
+    {% if error %}
+        &lt;p style=&quot;color: red;&quot;&gt;{{ error }}&lt;/p&gt;
+    {% endif %}
+    &lt;form method=&quot;post&quot;&gt;
+        {% csrf_token %}
+        &lt;label for=&quot;username&quot;&gt;Username:&lt;/label&gt;
+        &lt;input type=&quot;text&quot; id=&quot;username&quot; name=&quot;username&quot;&gt;
+        &lt;label for=&quot;password&quot;&gt;Password:&lt;/label&gt;
+        &lt;input type=&quot;password&quot; id=&quot;password&quot; name=&quot;password&quot;&gt;
+        &lt;button type=&quot;submit&quot;&gt;Login&lt;/button&gt;
+    &lt;/form&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+				</section>
+
+				<section>
+					<h3>7. Using Built-in Authentication Views</h3>
+					<p>Django provides built-in views for login, logout, and password management which you can use directly. For instance:</p>
+					<pre><code>from django.urls import path
+from django.contrib.auth import views as auth_views
+
+urlpatterns = [
+    path(&apos;admin/&apos;, admin.site.urls),
+    path(&apos;signup/&apos;, views.signup, name=&apos;signup&apos;),
+    path(&apos;login/&apos;, auth_views.LoginView.as_view(template_name=&apos;login.html&apos;), name=&apos;login&apos;),
+    path(&apos;logout/&apos;, auth_views.LogoutView.as_view(), name=&apos;logout&apos;),
+    path(&apos;password_change/&apos;, auth_views.PasswordChangeView.as_view(), name=&apos;password_change&apos;),
+    path(&apos;password_change/done/&apos;, auth_views.PasswordChangeDoneView.as_view(), name=&apos;password_change_done&apos;),
+    path(&apos;password_reset/&apos;, auth_views.PasswordResetView.as_view(), name=&apos;password_reset&apos;),
+    path(&apos;password_reset/done/&apos;, auth_views.PasswordResetDoneView.as_view(), name=&apos;password_reset_done&apos;),
+    path(&apos;reset/&lt;uidb64&gt;/&lt;token&gt;/&apos;, auth_views.PasswordResetConfirmView.as_view(), name=&apos;password_reset_confirm&apos;),
+    path(&apos;reset/done/&apos;, auth_views.PasswordResetCompleteView.as_view(), name=&apos;password_reset_complete&apos;),
+]
+</code></pre>
 				</section>
 			</div>
 		</div>
