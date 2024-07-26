@@ -308,6 +308,138 @@ urlpatterns = [
 ]
 </code></pre>
 				</section>
+				<section>
+					<h3>permissions and groups</h3>
+					<p>In Django, permissions and groups are a key part of the authentication framework. They allow you to define what actions users can perform and to manage user roles more efficiently. Here's a detailed explanation:</p>
+				</section>
+				<section>
+					<h3>Permissions</h3>
+					<p>Permissions in Django are used to define what actions a user can perform. By default, Django provides three permissions for each model:</p>
+					<ul>
+						<li>add_modelname</li>
+						<li>change_modelname</li>
+						<li>delete_modelname</li>
+					</ul>
+					<p>These permissions are created when you run makemigrations and migrate.</p>
+				</section>
+				<section>
+					<h3>Custom Permissions</h3>
+					<p>You can also define custom permissions in your models.</p>
+					<pre><code>from django.db import models
+
+class MyModel(models.Model):
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        permissions = [
+            ('can_publish', 'Can Publish Posts'),
+        ]
+</code></pre>
+				</section>
+				<section>
+					<h3>Checking Permissions</h3>
+					<p>You can check permissions in your views or templates.</p>
+					<pre><code>from django.shortcuts import render
+from django.contrib.auth.decorators import permission_required
+
+@permission_required('mymodel.can_publish')
+def my_view(request):
+    return render(request, 'my_template.html')
+</code></pre>
+				</section>
+				<section>
+					<h3>Groups</h3>
+					<p>Groups in Django allow you to categorize users and assign permissions to these groups, which can then be inherited by the users in the group. This is useful for managing roles within an application.</p>
+				</section>
+				<section>
+					<h3>Creating and Assigning Groups Using Admin Interface</h3>
+					<p>
+						You can create and assign groups either through the Django admin interface or programmatically.
+
+					<ul>
+						<li>Go to the Django admin.</li>
+						<li>Navigate to the "Groups" section.</li>
+						<li>Create a new group and assign the necessary permissions.</li>
+					</ul>
+					</p>
+				</section>
+
+				<section>
+					<h3>Creating and Assigning Groups Using Programmatically</h3>
+					<p>`management/commands/assign_groups.py`</p>
+					<pre><code>from django.core.management.base import BaseCommand
+from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.models import ContentType
+from myapp.models import MyModel
+
+class Command(BaseCommand):
+    def handle(self, *args, **options):
+        # Create a group
+        group, created = Group.objects.get_or_create(name='Editors')
+
+        # Add permissions to group
+        content_type = ContentType.objects.get_for_model(MyModel)
+        permissions = Permission.objects.filter(content_type=content_type)
+        for permission in permissions:
+            group.permissions.add(permission)
+
+        # Assign group to a user
+        from django.contrib.auth.models import User
+        user = User.objects.get(username='john')
+        user.groups.add(group)
+        user.save()
+</code></pre>
+				</section>
+				<section>
+					<h3>Using Permissions and Groups in Views</h3>
+					<p>You can use decorators or mixins to enforce permissions in your views.</p>
+				</section>
+				<section>
+					<h3>Using Permissions and Groups in Function Based Views</h3>
+					<pre><code>from django.shortcuts import render
+from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.decorators import login_required
+
+@login_required
+@permission_required('mymodel.can_publish', raise_exception=True)
+def my_view(request):
+    return render(request, 'my_template.html')
+</code></pre>
+				</section>
+				<section>
+					<h3>Using Permissions and Groups in Class Based Views</h3>
+					<p>For class-based views, use the `PermissionRequiredMixin`.</p>
+					<pre><code>from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.views.generic import TemplateView
+
+class MyView(PermissionRequiredMixin, TemplateView):
+    template_name = 'my_template.html'
+    permission_required = 'mymodel.can_publish'</code></pre>
+				</section>
+				<section>
+					<h3>Permissions and Groups in Templates</h3>
+					<p>You can also check for permissions and group memberships in your templates.</p>
+				<pre><code >{% if user.has_perm('mymodel.can_publish') %}
+    <p>You have permission to publish posts.</p>
+{% else %}
+    <p>You do not have permission to publish posts.</p>
+{% endif %}
+
+{% if user.groups.filter(name='Editors').exists %}
+    <p>You are an editor.</p>
+{% else %}
+    <p>You are not an editor.</p>
+{% endif %}
+</code></pre>
+				</section>
+				<section>
+					<h3>Summary</h3>
+					<ol>
+						<li>`Permissions`: Define what actions a user can perform. Built-in permissions are provided for each model (add, change, delete), and you can define custom permissions.</li>
+						<li>`Groups`: Categorize users into roles and assign permissions to these roles. Users inherit permissions from the groups they belong to.</li>
+						<li>`Usage`: Check permissions and group memberships in views, either via decorators/mixins or directly in templates.</li>
+					</ol>
+				</section>
 			</div>
 		</div>
 
