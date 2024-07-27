@@ -27,6 +27,14 @@
 			<div class="slides">
 				<section><h1>Authentication In Django</h1></section>
 				<section>
+					<h3>Outline</h3>
+					<ul>
+						<li>Authentication</li>
+						<li>Protect With Login</li>
+						<li></li>
+					</ul>
+				</section>
+				<section>
 					<h2>Model</h2>
 					<ul>
 						<li>django.contrib.auth.models.User</li>
@@ -439,6 +447,240 @@ class MyView(PermissionRequiredMixin, TemplateView):
 						<li>`Groups`: Categorize users into roles and assign permissions to these roles. Users inherit permissions from the groups they belong to.</li>
 						<li>`Usage`: Check permissions and group memberships in views, either via decorators/mixins or directly in templates.</li>
 					</ol>
+				</section>
+
+				<section>
+					<h3>Authentication in DRF</h3>
+				</section>
+				<section>
+					<h3>Basic Authentication</h3>
+					<p>Basic authentication uses the HTTPBasicAuthentication class, where the client sends the username and password encoded in the HTTP headers.</p>
+					<pre><code>REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}</code></pre>
+				</section>
+				<section>
+					<section>
+						<h3>Token Authentication</h3>
+						<p>Token authentication uses the TokenAuthentication class. Each user is assigned a unique token, which they must include in the Authorization header of their requests.</p>
+						<pre><code>pip install djangorestframework drf-yasg
+pip install djangorestframework-authtoken
+</code></pre>
+					</section>
+					<section>
+						<p>Add rest_framework and rest_framework.authtoken to your INSTALLED_APPS</p>
+						<pre><code>INSTALLED_APPS = [
+    ...
+    'rest_framework',
+    'rest_framework.authtoken',
+    ...
+]
+</code></pre>
+					</section>
+					<section>
+						<h3>Run the migrations</h3>
+						<pre><code>python manage.py migrate</code></pre>
+					</section>
+					<section>
+						<h3>Update settings.py</h3>
+						<pre><code>REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+</code></pre>
+					</section>
+					<section>
+						<h3>Create a view to generate tokens</h3>
+						<pre><code>from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+from rest_framework.response import Response
+
+class CustomAuthToken(ObtainAuthToken):
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.pk,
+            'email': user.email
+        })</code></pre>
+					</section>
+					<section>
+						<h3>Update urls.py</h3>
+						<pre><code>from django.urls import path
+from myapp.views import CustomAuthToken
+
+urlpatterns = [
+    path('api-token-auth/', CustomAuthToken.as_view()),
+]</code></pre>
+					</section>
+				</section>
+
+				<section>
+					<h3>3. Session Authentication</h3>
+					<p>Session authentication uses Django's session framework. It’s suitable for web applications where the client and server share the same session</p>
+					<pre><code>REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}</code></pre>
+				</section>
+
+				<section>
+					<section>
+						<h3>4. JWT Authentication</h3>
+						<p>JWT (JSON Web Token) authentication is commonly used for API authentication. It provides a
+							compact and self-contained way to securely transmit information between parties as a JSON
+							object.</p>
+					</section>
+					<section>
+						<pre><code>pip install djangorestframework-simplejwt</code></pre>
+					</section>
+					<section>
+						<pre><code>from datetime import timedelta
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}</code></pre>
+					</section>
+					<section>
+						<p>Update urls.py</p>
+						<pre><code>from django.urls import path
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+
+urlpatterns = [
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+]</code></pre>
+					</section>
+
+				</section>
+				<section>
+					<section>
+						<h3>5. Custom Authentication</h3>
+						<p>You can create custom authentication classes by extending the BaseAuthentication class. in authentication.py</p>
+					</section>
+					<section>
+						<pre><code>from rest_framework.authentication import BaseAuthentication
+from rest_framework.exceptions import AuthenticationFailed
+from django.contrib.auth.models import User
+
+class CustomAuthentication(BaseAuthentication):
+    def authenticate(self, request):
+        token = request.META.get('HTTP_AUTHORIZATION')
+        if not token:
+            return None
+
+        try:
+            user = User.objects.get(auth_token=token)
+        except User.DoesNotExist:
+            raise AuthenticationFailed('Invalid token')
+
+        return (user, None)</code></pre>
+					</section>
+					<section>
+						<pre><code>REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'myapp.authentication.CustomAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}</code></pre>
+					</section>
+				</section>
+				<section>
+					<h3>Protecting Views with Permissions</h3>
+					<p>You can use the IsAuthenticated permission class to ensure that only authenticated users can access certain views. You can also create custom permission classes.</p>
+				</section>
+				<section>
+					<p>Example of Using Built-in Permissions in `views.py`</p>
+					<pre><code>from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
+class ProtectedView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        content = {'message': 'This is a protected view'}
+        return Response(content)
+</code></pre>
+				</section>
+				<section>
+					<p>Example of a Custom Permission Class in `permissions.py`</p>
+					<pre><code>from rest_framework.permissions import BasePermission
+
+class IsAdminUser(BasePermission):
+    def has_permission(self, request, view):
+        return request.user and request.user.is_staff</code></pre>
+				</section>
+				<section>
+					<p>views.py</p>
+					<pre><code>from rest_framework.views import APIView
+from rest_framework.response import Response
+from myapp.permissions import IsAdminUser
+
+class AdminView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        content = {'message': 'This is an admin view'}
+        return Response(content)</code></pre>
+				</section>
+				<section>
+					<section>
+						<h3>Summary</h3>
+						<p>By configuring these authentication methods, you can secure your Django REST Framework API
+							and ensure that only authorized users can access or modify resources.</p>
+					</section>
+					<section>
+						<ol>
+							<li>Basic Authentication: Uses HTTP basic authentication.</li>
+							<li>Token Authentication: Uses token-based authentication, where each user has a unique
+								token.
+							</li>
+							<li>Session Authentication: Uses Django's session framework.</li>
+							<li>JWT Authentication: Uses JSON Web Tokens for stateless authentication.</li>
+							<li>Custom Authentication: Create custom authentication logic by extending the
+								BaseAuthentication class.
+							</li>
+						</ol>
+					</section>
 				</section>
 			</div>
 		</div>
